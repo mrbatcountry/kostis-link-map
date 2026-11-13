@@ -167,6 +167,7 @@ const TARGETS = [
   { id:'catering',label:'kostis.ru /catering/' },
   { id:'furshet', label:'/меню/ фуршетные наборы' },
   { id:'burgers', label:'/меню/ мини-бургеры' },
+  { id:'kanape',  label:'/меню/ канапе' },
 ];
 
 const SITES = [
@@ -179,6 +180,10 @@ const SITES = [
   { id:'sochi',           domain:'catering-sochi.ru',                    group:'кейтеринг',  level:1 },
   { id:'monitor4ik',      domain:'monitor4ik.com',                       group:'кейтеринг',  level:1 },
   { id:'burgers-main',    domain:'mini-burgeri-dlya-fursheta.ru',        group:'мини-бургеры', level:1 },
+  { id:'siesta',          domain:'siesta-nsk.ru',                        group:'кейтеринг',  level:1 },
+  { id:'yagoda',          domain:'yagoda-fest.ru',                       group:'главная',    level:1 },
+  { id:'yulia',           domain:'yuliabasova.ru',                       group:'канапе',     level:1 },
+  { id:'italianfest',     domain:'italianfest.ru',                       group:'фуршет',     level:1 },
 
   // ---- уровень 2: подклеены к дропам первого уровня ----
   { id:'nabory',          domain:'furshetnye-nabory-s-dostavkoi.ru',     group:'фуршет',     level:2, parent:'furshet-moskve' },
@@ -189,18 +194,24 @@ const SITES = [
   { id:'kejtering',       domain:'kejtering-moskva.ru',                  group:'кейтеринг',  level:2, parent:'tatarsloboda' },
   { id:'jekrail',         domain:'jekrailcafe.ru',                       group:'кейтеринг',  level:2, parent:'sochi' },
   { id:'burgers-zakaz',   domain:'mini-burgery-zakazat.ru',              group:'мини-бургеры', level:2, parent:'burgers-main' },
+  { id:'allbeaches',      domain:'allbeaches.ru',                        group:'кейтеринг',  level:2, parent:'siesta' },
+  { id:'papatoday',       domain:'papatoday.ru',                         group:'главная',    level:2, parent:'yagoda' },
 ];
 
 const LINKS = [
   // ---- связи с основным сайтом ----
   { from:'furshet-moskve', to:'furshet',  type:'glue', date:'17–19.11', plan:true,  note:'' },
   { from:'burgers-moskva', to:'burgers',  type:'glue', date:'17–19.11', plan:true,  note:'' },
-  { from:'tatarsloboda',   to:'home',     type:'link', date:'размещено', plan:false, note:'в хедере' },
-  { from:'mi-lya',         to:'home',     type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
+  { from:'tatarsloboda',   to:'catering', type:'link', date:'размещено', plan:false, note:'в хедере' },
+  { from:'mi-lya',         to:'catering', type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
   { from:'hohloma',        to:'catering', type:'link', date:'размещено', plan:false, note:'со страницы /catering.html' },
   { from:'sochi',          to:'catering', type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
-  { from:'monitor4ik',     to:'catering', type:'link', date:'размещено', plan:false, note:'в статье, безанкорная · на /catering/' },
+  { from:'monitor4ik',     to:'catering', type:'link', date:'размещено', plan:false, note:'в статье, безанкорная' },
   { from:'burgers-main',   to:'home',     type:'link', date:'скоро',     plan:true,  note:'' },
+  { from:'siesta',         to:'catering', type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
+  { from:'yagoda',         to:'home',     type:'link', date:'размещено', plan:false, note:'брендовая в тексте, как партнёр' },
+  { from:'yulia',          to:'kanape',   type:'link', date:'размещено', plan:false, note:'анкорная, со страницы «День рождения»' },
+  { from:'italianfest',    to:'furshet',  type:'link', date:'размещено', plan:false, note:'в FAQ, анкор «Фуршет»' },
 
   // ---- связи между дропами ----
   { from:'nabory',          to:'furshet-moskve', type:'glue', date:'сентябрь', plan:false, note:'' },
@@ -211,12 +222,14 @@ const LINKS = [
   { from:'kejtering',       to:'tatarsloboda',   type:'glue', date:'07.09',    plan:false, note:'' },
   { from:'jekrail',         to:'sochi',          type:'glue', date:'13.11',    plan:false, note:'' },
   { from:'burgers-zakaz',   to:'burgers-main',   type:'glue', date:'скоро',    plan:true,  note:'' },
+  { from:'allbeaches',    to:'siesta',         type:'link', date:'размещено', plan:false, note:'в FAQ на внутренней странице' },
+  { from:'papatoday',     to:'yagoda',         type:'link', date:'размещено', plan:false, note:'в статье' },
 ];
 
 /* Все остальные домены из таблицы (без связей) — статус: ok / work / wait */
 const POOL = {
-  ok:   ['furshetnye-nabory-s-dostavkoi.ru','kejtering-moskva-s-dostavkoj.ru','kejtering-moskva.ru','furshet-na-zakaz.ru','mini-burgery-s-dostavkoj.ru','monitor4ik.com','tatarsloboda.ru','ми-ля.рф','zolotaya-hohloma.ru','yaposhik.ru','jekrailcafe.ru','catering-sochi.ru'],
-  work: ['furshet-na-zakaz-v-moskve.ru','mini-burgery-dlya-fursheta-moskva.ru','mini-burgeri-dlya-fursheta.ru','mini-burgery-zakazat.ru','siesta-nsk.ru','allbeaches.ru','калитники.рф','выезднойресторан.рф','yagoda-fest.ru','italianfest.ru','teplitsa-cafe.ru','silverage-ok.ru','papatoday.ru','the-bowl.ru','idolfest.ru','yarcatering.ru','simplefest.ru','yuliabasova.ru'],
+  ok:   ['furshetnye-nabory-s-dostavkoi.ru','kejtering-moskva-s-dostavkoj.ru','kejtering-moskva.ru','furshet-na-zakaz.ru','mini-burgery-s-dostavkoj.ru','monitor4ik.com','tatarsloboda.ru','ми-ля.рф','zolotaya-hohloma.ru','yaposhik.ru','jekrailcafe.ru','catering-sochi.ru','siesta-nsk.ru','allbeaches.ru','yagoda-fest.ru','italianfest.ru','papatoday.ru','yuliabasova.ru'],
+  work: ['furshet-na-zakaz-v-moskve.ru','mini-burgery-dlya-fursheta-moskva.ru','mini-burgeri-dlya-fursheta.ru','mini-burgery-zakazat.ru','калитники.рф','выезднойресторан.рф','teplitsa-cafe.ru','silverage-ok.ru','the-bowl.ru','idolfest.ru','yarcatering.ru','simplefest.ru'],
   wait: ['robot-chappy.ru','wensdey-2.ru','rostecdronefestival.ru','quartier-gourmet.ru','myfrida.ru','beachsoccercup.ru','102sport.ru','anrussia.ru','yarastuvrossii.ru','climate2022.ru','canalmoscow.ru','dlfest.ru','filmshowroom.ru','poehali2021.ru','dni-naslediya.ru','спорт62.рф','csovernad.ru','uprava-kurkino.ru','muaythaifriendshipcup.ru','metalnation.ru'],
 };
 /* ======================= конец блока данных ============================== */
@@ -228,7 +241,7 @@ const stage = document.getElementById('stage');
 const tip = document.getElementById('tip');
 
 const COLORS = { link:'#4aa8ff', glue:'#ff9f45', plan:'#a78bfa' };
-const GROUPS = { 'кейтеринг':'#2dd4bf', 'мини-бургеры':'#f472b6', 'канапе':'#c084fc', 'фуршет':'#ff9f45' };
+const GROUPS = { 'кейтеринг':'#2dd4bf', 'мини-бургеры':'#f472b6', 'канапе':'#c084fc', 'фуршет':'#ff9f45', 'главная':'#facc15' };
 const groupColor = g => GROUPS[g] || '#8fa5c4';
 const W = 1600, H = 1320, CX = W/2, CY = H/2;
 
@@ -425,7 +438,7 @@ function hideTip(){ tip.classList.remove('show'); }
 
 /* ---------- статистика ---------- */
 const nPlan = LINKS.filter(l=>l.plan).length;
-const N_PROGON = 7; // прогонов сделано (пометки в таблице)
+const N_PROGON = 8; // прогонов сделано (пометки в таблице)
 document.getElementById('stats').innerHTML = `
   <span class="chip">на карте<b>${SITES.length + 1}</b></span>
   <span class="chip ok">сайтов готово<b>${POOL.ok.length + POOL.work.length}</b></span>
@@ -467,9 +480,10 @@ if (location.hash === '#pool') pool.classList.add('open');
 /* ---------- масштаб / панорама ---------- */
 let view = { x:0, y:0, k:1 };
 function fit(){
-  const pad = 40;
-  const k = Math.min((innerWidth-pad*2)/W, (innerHeight-pad*2)/H);
-  view.k = k; view.x = (innerWidth - W*k)/2; view.y = (innerHeight - H*k)/2;
+  const pad = 40, bottomPad = 120; // место под сводку по тематикам
+  const k = Math.min((innerWidth-pad*2)/W, (innerHeight-pad-bottomPad)/H);
+  view.k = k; view.x = (innerWidth - W*k)/2;
+  view.y = pad + (innerHeight - pad - bottomPad - H*k)/2;
   apply();
 }
 function apply(){ scene.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`); }
