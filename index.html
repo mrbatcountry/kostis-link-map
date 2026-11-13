@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта ссылок и подклеек kostis.ru</title>
+<style>
+:root{
+  --bg:#070d1a; --bg2:#0d1626;
+  --text:#eaf1fb; --text2:#93a5c0;
+  --link:#4aa8ff;      /* ссылка на kostis.ru */
+  --glue:#ff9f45;      /* подклейка дропа к дропу */
+  --plan:#a78bfa;      /* в плане (пунктир) */
+  --ok:#3ddc97;        /* готово */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font:14px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);
+  background:
+    radial-gradient(900px 600px at 50% 38%,rgba(43,93,168,.22),transparent 65%),
+    radial-gradient(1400px 900px at 50% 45%,var(--bg2),var(--bg));
+  overflow:hidden;-webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;cursor:grab}
+#stage.dragging{cursor:grabbing}
+svg{display:block;width:100%;height:100%}
+.grid-dots{opacity:.5}
+
+/* ---------- шапка ---------- */
+header{position:fixed;top:0;left:0;right:0;padding:16px 24px;pointer-events:none;z-index:5;
+  display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+header .title h1{font-size:20px;font-weight:800;letter-spacing:.3px;
+  background:linear-gradient(90deg,#fff,#9cc4ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .title p{font-size:12.5px;color:var(--text2);margin-top:3px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;pointer-events:auto}
+.chip{background:rgba(14,23,41,.85);border:1px solid #22344f;border-radius:999px;
+  padding:7px 15px;font-size:12.5px;color:var(--text2);backdrop-filter:blur(6px);white-space:nowrap}
+.chip b{color:var(--text);font-weight:800;font-size:15px;margin-left:5px}
+.chip.ok b{color:var(--ok)} .chip.plan b{color:var(--plan)} .chip.all b{color:#7fb2ff}
+
+/* ---------- легенда ---------- */
+#legend{position:fixed;left:24px;bottom:22px;z-index:5;background:rgba(12,19,34,.92);
+  border:1px solid #22344f;border-radius:14px;padding:13px 18px;font-size:12.5px;color:var(--text2);
+  backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(0,0,0,.35)}
+#legend .row{display:flex;align-items:center;gap:10px;margin:5px 0}
+#legend .sw{width:28px;height:0;border-top:3px solid var(--link);border-radius:2px}
+#legend .sw.glue{border-top-color:var(--glue)}
+#legend .sw.plan{border-top-color:var(--plan);border-top-style:dashed}
+#legend .hint{margin-top:9px;padding-top:9px;border-top:1px solid #1d2c44;font-size:11.5px;color:#6e81a0;line-height:1.6}
+
+/* ---------- сводка по тематикам (внизу, по центру) ---------- */
+#summary{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:10px}
+.sum-card{background:rgba(12,19,34,.92);border:1px solid #22344f;border-radius:13px;
+  padding:8px 18px;text-align:center;backdrop-filter:blur(8px);min-width:118px}
+.sum-card h4{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.sum-card .v{font-size:11.5px;color:var(--text2);white-space:nowrap}
+.sum-card .v b{color:var(--text);font-size:12.5px}
+@media (max-width:1100px){#summary{display:none}}
+
+/* ---------- кнопки ---------- */
+.btn{position:fixed;z-index:6;background:rgba(14,23,41,.92);border:1px solid #2b3f5e;color:var(--text);
+  border-radius:12px;padding:9px 18px;font-size:12.5px;cursor:pointer;backdrop-filter:blur(8px)}
+.btn:hover{border-color:var(--link);box-shadow:0 0 0 3px rgba(74,168,255,.12)}
+#reset{right:24px;bottom:22px}
+#poolToggle{right:24px;bottom:70px}
+
+/* ---------- панель всех доменов ---------- */
+#pool{position:fixed;top:0;right:0;bottom:0;width:330px;z-index:7;background:rgba(9,15,28,.97);
+  border-left:1px solid #22344f;backdrop-filter:blur(10px);padding:20px 18px;overflow-y:auto;
+  transform:translateX(105%);transition:transform .28s ease;box-shadow:-12px 0 40px rgba(0,0,0,.4)}
+#pool.open{transform:translateX(0)}
+#pool h2{font-size:15px;font-weight:800;margin-bottom:2px}
+#pool .sub{font-size:11.5px;color:var(--text2);margin-bottom:14px}
+#pool .sec{margin-bottom:14px}
+#pool .sec h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px;
+  display:flex;align-items:center;gap:7px}
+#pool .dot{width:8px;height:8px;border-radius:50%}
+#pool .item{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;font-size:12.5px;color:#c8d5e8}
+#pool .item:hover{background:rgba(74,168,255,.08)}
+#pool .item.onmap::after{content:'внедрено';margin-left:auto;font-size:10px;color:#7fb2ff;
+  border:1px solid rgba(127,178,255,.35);border-radius:6px;padding:0 6px}
+#poolClose{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:9px;
+  background:rgba(74,168,255,.08);border:1px solid #2b3f5e;color:var(--text2);font-size:15px;
+  cursor:pointer;line-height:1}
+#poolClose:hover{border-color:var(--link);color:#fff}
+
+/* ---------- тултип ---------- */
+#tip{position:fixed;z-index:10;max-width:330px;background:rgba(9,15,29,.97);border:1px solid #2b3f5e;
+  border-radius:14px;padding:13px 15px;font-size:12.5px;line-height:1.55;pointer-events:none;
+  opacity:0;transition:opacity .12s;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+#tip.show{opacity:1}
+#tip .dom{font-size:14.5px;font-weight:800;color:#fff;margin-bottom:5px;word-break:break-all}
+#tip .grp{color:var(--text2)}
+#tip .grp b{color:#ffd9ad;font-weight:600}
+#tip .conn{margin-top:8px;padding-top:8px;border-top:1px solid #20304a;color:var(--text2)}
+#tip .conn div{margin:3px 0}
+#tip .conn .arr{color:#7f93b2}
+#tip .conn .when{color:#8fa9cf}
+
+/* ---------- узлы ---------- */
+.node{cursor:pointer}
+.node:hover circle.body{filter:brightness(1.4) drop-shadow(0 0 12px rgba(120,180,255,.6))}
+.node text{pointer-events:none}
+.edge{pointer-events:stroke;cursor:pointer}
+.edge:hover path{stroke-width:4.5}
+
+@media (max-width:760px){
+  header .title p{display:none}
+  #legend{font-size:11.5px;padding:10px 12px}
+  #pool{width:280px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <h1>Карта ссылок и подклеек — kostis.ru</h1>
+    <p>Дропы и прокладки · обновлено 13.11.2026 · наведите курсор на сайт или линию · колесо — масштаб · зажать ЛКМ — двигать · двойной клик — сброс</p>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div id="stage"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+
+<div id="legend">
+  <div class="row"><span class="sw"></span> Ссылка на kostis.ru</div>
+  <div class="row"><span class="sw glue"></span> Связь между дропами</div>
+  <div class="row"><span class="sw plan"></span> Ещё не сделано</div>
+</div>
+
+<button class="btn" id="poolToggle">Все домены · 50</button>
+<button class="btn" id="reset">Сбросить вид</button>
+
+<div id="summary"></div>
+
+<aside id="pool">
+  <button id="poolClose" title="Закрыть">✕</button>
+  <h2>Все домены</h2>
+  <div class="sub">полный список из таблицы «Дропы и прокладки»</div>
+  <div id="poolBody"></div>
+</aside>
+
+<div id="tip"></div>
+
+<script>
+/* ==========================================================================
+   ДАННЫЕ — редактируй только этот блок, чтобы добавить / изменить сайты.
+
+   СТРАНИЦЫ (TARGETS) — узлы внутри большого круга основного сайта.
+   САЙТЫ (SITES):
+     id      — короткий уникальный ключ (латиница)
+     domain  — домен для отображения
+     group   — группа запросов (показывается под узлом и во всплывашке)
+     level   — 1 = напрямую связан с kostis.ru, 2 = дроп второго уровня
+     parent  — (для level 2) id сайта первого уровня
+   СВЯЗИ (LINKS):
+     from    — id сайта
+     to      — id сайта ИЛИ id страницы из TARGETS
+     type    — 'link' (ссылка на kostis.ru) | 'glue' (связь между дропами)
+     date    — когда сделано / когда сделаем
+     plan    — true, если ещё не сделано (линия станет пунктирной)
+     note    — только важное: «сквозная в футере», «в статье», «проблема Бегета»…
+   ПУЛ (POOL) — все остальные домены из таблицы, без связей.
+   ========================================================================== */
+const TARGETS = [
+  { id:'home',    label:'kostis.ru — главная' },
+  { id:'catering',label:'kostis.ru /catering/' },
+  { id:'furshet', label:'/меню/ фуршетные наборы' },
+  { id:'burgers', label:'/меню/ мини-бургеры' },
+];
+
+const SITES = [
+  // ---- уровень 1: напрямую связаны с kostis.ru ----
+  { id:'furshet-moskve',  domain:'furshet-na-zakaz-v-moskve.ru',         group:'фуршет',     level:1 },
+  { id:'burgers-moskva',  domain:'mini-burgery-dlya-fursheta-moskva.ru', group:'мини-бургеры', level:1 },
+  { id:'tatarsloboda',    domain:'tatarsloboda.ru',                      group:'кейтеринг',  level:1 },
+  { id:'mi-lya',          domain:'ми-ля.рф',                             group:'кейтеринг',  level:1 },
+  { id:'hohloma',         domain:'zolotaya-hohloma.ru',                  group:'кейтеринг',  level:1 },
+  { id:'sochi',           domain:'catering-sochi.ru',                    group:'кейтеринг',  level:1 },
+  { id:'monitor4ik',      domain:'monitor4ik.com',                       group:'кейтеринг',  level:1 },
+  { id:'burgers-main',    domain:'mini-burgeri-dlya-fursheta.ru',        group:'мини-бургеры', level:1 },
+
+  // ---- уровень 2: подклеены к дропам первого уровня ----
+  { id:'nabory',          domain:'furshetnye-nabory-s-dostavkoi.ru',     group:'фуршет',     level:2, parent:'furshet-moskve' },
+  { id:'furshet-zakaz',   domain:'furshet-na-zakaz.ru',                  group:'фуршет',     level:2, parent:'furshet-moskve' },
+  { id:'yaposhik',        domain:'yaposhik.ru',                          group:'фуршет',     level:2, parent:'furshet-moskve' },
+  { id:'burgers-dostavka',domain:'mini-burgery-s-dostavkoj.ru',          group:'мини-бургеры', level:2, parent:'burgers-moskva' },
+  { id:'kejtering-dost',  domain:'kejtering-moskva-s-dostavkoj.ru',      group:'кейтеринг',  level:2, parent:'mi-lya' },
+  { id:'kejtering',       domain:'kejtering-moskva.ru',                  group:'кейтеринг',  level:2, parent:'tatarsloboda' },
+  { id:'jekrail',         domain:'jekrailcafe.ru',                       group:'кейтеринг',  level:2, parent:'sochi' },
+  { id:'burgers-zakaz',   domain:'mini-burgery-zakazat.ru',              group:'мини-бургеры', level:2, parent:'burgers-main' },
+];
+
+const LINKS = [
+  // ---- связи с основным сайтом ----
+  { from:'furshet-moskve', to:'furshet',  type:'glue', date:'17–19.11', plan:true,  note:'' },
+  { from:'burgers-moskva', to:'burgers',  type:'glue', date:'17–19.11', plan:true,  note:'' },
+  { from:'tatarsloboda',   to:'home',     type:'link', date:'размещено', plan:false, note:'в хедере' },
+  { from:'mi-lya',         to:'home',     type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
+  { from:'hohloma',        to:'catering', type:'link', date:'размещено', plan:false, note:'со страницы /catering.html' },
+  { from:'sochi',          to:'catering', type:'link', date:'размещено', plan:false, note:'сквозная в футере' },
+  { from:'monitor4ik',     to:'catering', type:'link', date:'размещено', plan:false, note:'в статье, безанкорная · на /catering/' },
+  { from:'burgers-main',   to:'home',     type:'link', date:'скоро',     plan:true,  note:'' },
+
+  // ---- связи между дропами ----
+  { from:'nabory',          to:'furshet-moskve', type:'glue', date:'сентябрь', plan:false, note:'' },
+  { from:'furshet-zakaz',   to:'furshet-moskve', type:'glue', date:'13.11',    plan:false, note:'' },
+  { from:'yaposhik',        to:'furshet-moskve', type:'glue', date:'13.11',    plan:false, note:'проблема Бегета' },
+  { from:'burgers-dostavka',to:'burgers-moskva', type:'glue', date:'13.11',    plan:false, note:'' },
+  { from:'kejtering-dost',  to:'mi-lya',         type:'glue', date:'07.09',    plan:false, note:'' },
+  { from:'kejtering',       to:'tatarsloboda',   type:'glue', date:'07.09',    plan:false, note:'' },
+  { from:'jekrail',         to:'sochi',          type:'glue', date:'13.11',    plan:false, note:'' },
+  { from:'burgers-zakaz',   to:'burgers-main',   type:'glue', date:'скоро',    plan:true,  note:'' },
+];
+
+/* Все остальные домены из таблицы (без связей) — статус: ok / work / wait */
+const POOL = {
+  ok:   ['furshetnye-nabory-s-dostavkoi.ru','kejtering-moskva-s-dostavkoj.ru','kejtering-moskva.ru','furshet-na-zakaz.ru','mini-burgery-s-dostavkoj.ru','monitor4ik.com','tatarsloboda.ru','ми-ля.рф','zolotaya-hohloma.ru','yaposhik.ru','jekrailcafe.ru','catering-sochi.ru'],
+  work: ['furshet-na-zakaz-v-moskve.ru','mini-burgery-dlya-fursheta-moskva.ru','mini-burgeri-dlya-fursheta.ru','mini-burgery-zakazat.ru','siesta-nsk.ru','allbeaches.ru','калитники.рф','выезднойресторан.рф','yagoda-fest.ru','italianfest.ru','teplitsa-cafe.ru','silverage-ok.ru','papatoday.ru','the-bowl.ru','idolfest.ru','yarcatering.ru','simplefest.ru','yuliabasova.ru'],
+  wait: ['robot-chappy.ru','wensdey-2.ru','rostecdronefestival.ru','quartier-gourmet.ru','myfrida.ru','beachsoccercup.ru','102sport.ru','anrussia.ru','yarastuvrossii.ru','climate2022.ru','canalmoscow.ru','dlfest.ru','filmshowroom.ru','poehali2021.ru','dni-naslediya.ru','спорт62.рф','csovernad.ru','uprava-kurkino.ru','muaythaifriendshipcup.ru','metalnation.ru'],
+};
+/* ======================= конец блока данных ============================== */
+
+
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+const stage = document.getElementById('stage');
+const tip = document.getElementById('tip');
+
+const COLORS = { link:'#4aa8ff', glue:'#ff9f45', plan:'#a78bfa' };
+const GROUPS = { 'кейтеринг':'#2dd4bf', 'мини-бургеры':'#f472b6', 'канапе':'#c084fc', 'фуршет':'#ff9f45' };
+const groupColor = g => GROUPS[g] || '#8fa5c4';
+const W = 1600, H = 1320, CX = W/2, CY = H/2;
+
+/* ---------- геометрия ---------- */
+const pos = {};
+const R_MAIN = 168, R_T = 94, R1 = 400, R2 = 622;
+
+TARGETS.forEach((t,i)=>{
+  const a = -Math.PI/2 + i*(Math.PI*2/TARGETS.length) + Math.PI/TARGETS.length;
+  pos[t.id] = { x: CX + Math.cos(a)*R_T, y: CY + Math.sin(a)*R_T, r:0, target:true };
+});
+
+const lvl1 = SITES.filter(s=>s.level===1);
+lvl1.forEach((s,i)=>{
+  const a = -Math.PI/2 + i*(Math.PI*2/lvl1.length);
+  pos[s.id] = { x: CX + Math.cos(a)*R1, y: CY + Math.sin(a)*R1, r:38, a };
+});
+
+const byParent = {};
+SITES.filter(s=>s.level===2).forEach(s=>{ (byParent[s.parent] ||= []).push(s); });
+Object.entries(byParent).forEach(([pid, kids])=>{
+  const pa = pos[pid].a;
+  kids.forEach((s,i)=>{
+    const off = (i - (kids.length-1)/2) * (kids.length>1 ? 0.42 : 0);
+    const a = pa + off;
+    pos[s.id] = { x: CX + Math.cos(a)*R2, y: CY + Math.sin(a)*R2, r:33, a };
+  });
+});
+
+const siteById = id => SITES.find(s=>s.id===id);
+const labelOf  = id => (TARGETS.find(t=>t.id===id)||{}).label || (siteById(id)||{}).domain || id;
+const isPlanNode = id => LINKS.some(l => (l.from===id || l.to===id) && l.plan);
+const onMap = new Set(SITES.map(s=>s.domain));
+
+/* ---------- помощники SVG ---------- */
+function el(name, attrs={}, parent){
+  const n = document.createElementNS(NS, name);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+const shorten = d => d.replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/+$/,'');
+function wrapDomain(d){
+  const s = shorten(d);
+  if (s.length <= 19) return [s];
+  const mid = Math.floor(s.length/2);
+  let cut = s.indexOf('-', mid-6);
+  if (cut < 0 || cut > mid+8) cut = s.indexOf('.', mid);
+  if (cut < 0) cut = mid;
+  return [s.slice(0,cut+1), s.slice(cut+1)];
+}
+
+/* ---------- сцена ---------- */
+const scene = el('g', { id:'scene' }, svg);
+const defs = el('defs', {}, scene);
+defs.innerHTML = ['link','glue','plan'].map(t=>`
+  <marker id="arr-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="${COLORS[t]}"/>
+  </marker>`).join('');
+const glow = el('filter', { id:'glow', x:'-60%', y:'-60%', width:'220%', height:'220%' }, defs);
+el('feGaussianBlur', { stdDeviation:'12', result:'b' }, glow);
+const fm = el('feMerge', {}, glow);
+el('feMergeNode', { in:'b' }, fm); el('feMergeNode', { in:'SourceGraphic' }, fm);
+
+// точечная сетка на фоне
+(function(){
+  const pts = [];
+  for (let x=60; x<W; x+=44) for (let y=60; y<H; y+=44) pts.push(`${x},${y}`);
+  const g = el('g', { class:'grid-dots' }, scene);
+  pts.forEach(p=>{
+    const [x,y] = p.split(',');
+    el('circle', { cx:x, cy:y, r:1.3, fill:'#1b2a44' }, g);
+  });
+})();
+
+/* ---------- рёбра ---------- */
+function edgeColor(l){ return l.plan ? COLORS.plan : COLORS[l.type]; }
+function trimToCircle(x1,y1,x2,y2,r2){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1;
+  return [x2 - dx/len*(r2+3), y2 - dy/len*(r2+3)];
+}
+const edgesG = el('g', {}, scene);
+const edgeEls = [];
+LINKS.forEach(l=>{
+  const p1 = pos[l.from], p2 = pos[l.to];
+  if (!p1 || !p2) return;
+  const [tx,ty] = p2.target ? [p2.x, p2.y] : trimToCircle(p1.x,p1.y,p2.x,p2.y,p2.r||30);
+  const [sx,sy] = p1.target ? [p1.x,p1.y] : trimToCircle(p2.x,p2.y,p1.x,p1.y,p1.r||30);
+  const midx=(sx+tx)/2, midy=(sy+ty)/2;
+  const nx=-(ty-sy), ny=(tx-sx);
+  const nl=Math.hypot(nx,ny)||1, bend=Math.min(28, nl*0.085);
+  const c = edgeColor(l);
+  const g = el('g', { class:'edge' }, edgesG);
+  const path = el('path', {
+    d:`M${sx},${sy} Q${midx+nx/nl*bend},${midy+ny/nl*bend} ${tx},${ty}`,
+    fill:'none', stroke:c, 'stroke-width': l.plan ? 2.2 : 2.8,
+    'stroke-dasharray': l.plan ? '7 6' : 'none',
+    'stroke-opacity': l.plan ? .9 : .82,
+    'marker-end':`url(#arr-${l.plan?'plan':l.type})`
+  }, g);
+  edgeEls.push({ l, g });
+});
+
+/* ---------- большой круг основного сайта ---------- */
+const mainG = el('g', {}, scene);
+const rg = el('radialGradient', { id:'mainGrad' }, defs);
+rg.innerHTML = `<stop offset="0%" stop-color="#1a558c"/><stop offset="100%" stop-color="#0c2743"/>`;
+el('circle', { cx:CX, cy:CY, r:R_MAIN+18, fill:'none', stroke:'#4aa8ff', 'stroke-opacity':.14, 'stroke-width':26, filter:'url(#glow)' }, mainG);
+el('circle', { cx:CX, cy:CY, r:R_MAIN+6, fill:'none', stroke:'#4aa8ff', 'stroke-opacity':.35, 'stroke-width':1.4, 'stroke-dasharray':'2 7' }, mainG);
+el('circle', { cx:CX, cy:CY, r:R_MAIN, fill:'url(#mainGrad)', stroke:'#5aa2e8', 'stroke-width':2.5, filter:'url(#glow)' }, mainG);
+const mainTitle = el('text', { x:CX, y:CY-R_MAIN+48, 'text-anchor':'middle', fill:'#fff', 'font-size':22, 'font-weight':800 }, mainG);
+mainTitle.textContent = 'kostis.ru';
+const mainSub = el('text', { x:CX, y:CY-R_MAIN+69, 'text-anchor':'middle', fill:'#9fb0c7', 'font-size':12 }, mainG);
+mainSub.textContent = 'основной сайт';
+
+TARGETS.forEach(t=>{
+  const p = pos[t.id];
+  const g = el('g', { class:'node' }, mainG);
+  const w = Math.max(100, t.label.length*5.7+24), h = 28;
+  el('rect', { x:p.x-w/2, y:p.y-h/2, width:w, height:h, rx:14,
+    fill:'#0d1c31', stroke:'#4aa8ff', 'stroke-opacity':.7, 'stroke-width':1.5 }, g);
+  const txt = el('text', { x:p.x, y:p.y+4, 'text-anchor':'middle', fill:'#cfe2ff', 'font-size':11, 'font-weight':600 }, g);
+  txt.textContent = t.label.replace('kostis.ru ','');
+  g.addEventListener('mousemove', e=>showTip(e, targetTip(t)));
+  g.addEventListener('mouseleave', hideTip);
+});
+
+/* ---------- узлы-сайты ---------- */
+const nodesG = el('g', {}, scene);
+SITES.forEach(s=>{
+  const p = pos[s.id];
+  const plan = isPlanNode(s.id);
+  const g = el('g', { class:'node' }, nodesG);
+  el('circle', { class:'body', cx:p.x, cy:p.y, r:p.r,
+    fill: s.level===1 ? '#152a46' : '#1a2338',
+    stroke: s.level===1 ? '#6db3ff' : '#7c8db0',
+    'stroke-width': plan ? 1.6 : 2.2,
+    'stroke-dasharray': plan ? '5 4' : 'none' }, g);
+  const lvl = el('text', { x:p.x, y:p.y+3.5, 'text-anchor':'middle', fill: plan ? '#b9a8f5' : '#8fa5c4',
+    'font-size':12, 'font-weight':800 }, g);
+  lvl.textContent = 'L' + s.level;
+
+  // домен (1–2 строки)
+  const lines = wrapDomain(s.domain);
+  lines.forEach((ln,i)=>{
+    const t = el('text', { x:p.x, y:p.y+p.r+17+i*13.5, 'text-anchor':'middle',
+      fill:'#e6eefb', 'font-size': lines.length>1 ? 10.5 : 11.5, 'font-weight':600 }, g);
+    t.textContent = ln;
+  });
+  // чип группы запросов под доменом (цвет по тематике)
+  const gy = p.y + p.r + 17 + (lines.length-1)*13.5 + 14;
+  const gw = s.group.length*6.3 + 16;
+  const gc = groupColor(s.group);
+  el('rect', { x:p.x-gw/2, y:gy-9, width:gw, height:17, rx:8.5,
+    fill:gc+'1a', stroke:gc+'73', 'stroke-width':1 }, g);
+  const gt = el('text', { x:p.x, y:gy+3, 'text-anchor':'middle', fill:gc, 'font-size':9.5, 'font-weight':700 }, g);
+  gt.textContent = s.group;
+
+  g.addEventListener('mousemove', e=>showTip(e, siteTip(s)));
+  g.addEventListener('mouseleave', hideTip);
+});
+
+/* ---------- тултипы ---------- */
+function siteTip(s){
+  return `<div class="dom">${shorten(s.domain)}</div>
+    <div class="grp">уровень ${s.level} · группа запросов: <b>${s.group}</b></div>`;
+}
+function targetTip(t){
+  return `<div class="dom">${t.label}</div>
+    <div class="grp">страница основного сайта</div>`;
+}
+function edgeTip(l){
+  return `<div class="dom">${shorten(labelOf(l.from))} → ${shorten(labelOf(l.to))}</div>
+    <div class="grp"><span class="when">${l.date}</span></div>`;
+}
+edgeEls.forEach(({l,g})=>{
+  g.addEventListener('mousemove', e=>showTip(e, edgeTip(l)));
+  g.addEventListener('mouseleave', hideTip);
+});
+
+function showTip(e, html){
+  tip.innerHTML = html;
+  tip.classList.add('show');
+  moveTip(e);
+}
+function moveTip(e){
+  const pad=16, w=tip.offsetWidth, h=tip.offsetHeight;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  if (x+w > innerWidth-8)  x = e.clientX-w-pad;
+  if (y+h > innerHeight-8) y = e.clientY-h-pad;
+  tip.style.left = x+'px'; tip.style.top = y+'px';
+}
+function hideTip(){ tip.classList.remove('show'); }
+
+/* ---------- статистика ---------- */
+const nPlan = LINKS.filter(l=>l.plan).length;
+const N_PROGON = 7; // прогонов сделано (пометки в таблице)
+document.getElementById('stats').innerHTML = `
+  <span class="chip">на карте<b>${SITES.length + 1}</b></span>
+  <span class="chip ok">сайтов готово<b>${POOL.ok.length + POOL.work.length}</b></span>
+  <span class="chip">прогонов сделано<b>${N_PROGON}</b></span>
+  <span class="chip all">всего доменов<b>${POOL.ok.length + POOL.work.length + POOL.wait.length}</b></span>`;
+
+/* ---------- сводка по тематикам (внизу) ---------- */
+(function(){
+  const count = {};
+  Object.keys(GROUPS).forEach(g => count[g] = { glue:0, link:0 });
+  LINKS.forEach(l=>{
+    const s = siteById(l.from);
+    if (!s || !count[s.group]) return;
+    count[s.group][l.type === 'glue' ? 'glue' : 'link']++;
+  });
+  document.getElementById('summary').innerHTML = Object.entries(GROUPS).map(([g,c])=>`
+    <div class="sum-card" style="border-top:2px solid ${c}66">
+      <h4 style="color:${c}">${g}</h4>
+      <div class="v">подклеено <b>${count[g].glue}</b> · ссылок <b>${count[g].link}</b></div>
+    </div>`).join('');
+})();
+
+/* ---------- панель всех доменов ---------- */
+const SECS = [
+  ['ok',   'Готово (размещено, подклеено)', '#3ddc97'],
+  ['work', 'В работе (развернут, отлежка)', '#f5c04e'],
+  ['wait', 'Выкуплено / ожидает',           '#7c8db0'],
+];
+document.getElementById('poolBody').innerHTML = SECS.map(([key,title,color])=>`
+  <div class="sec">
+    <h3><span class="dot" style="background:${color}"></span>${title} · ${POOL[key].length}</h3>
+    ${POOL[key].map(d=>`<div class="item${onMap.has(d)?' onmap':''}">${d}</div>`).join('')}
+  </div>`).join('');
+const pool = document.getElementById('pool');
+document.getElementById('poolToggle').addEventListener('click', ()=>pool.classList.toggle('open'));
+document.getElementById('poolClose').addEventListener('click', ()=>pool.classList.remove('open'));
+if (location.hash === '#pool') pool.classList.add('open');
+
+/* ---------- масштаб / панорама ---------- */
+let view = { x:0, y:0, k:1 };
+function fit(){
+  const pad = 40;
+  const k = Math.min((innerWidth-pad*2)/W, (innerHeight-pad*2)/H);
+  view.k = k; view.x = (innerWidth - W*k)/2; view.y = (innerHeight - H*k)/2;
+  apply();
+}
+function apply(){ scene.setAttribute('transform', `translate(${view.x},${view.y}) scale(${view.k})`); }
+let dragging=false, lx=0, ly=0;
+stage.addEventListener('mousedown', e=>{ dragging=true; lx=e.clientX; ly=e.clientY; stage.classList.add('dragging'); });
+addEventListener('mousemove', e=>{
+  if (!dragging) return;
+  view.x += e.clientX-lx; view.y += e.clientY-ly; lx=e.clientX; ly=e.clientY; apply();
+});
+addEventListener('mouseup', ()=>{ dragging=false; stage.classList.remove('dragging'); });
+stage.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
+  const mx=e.clientX, my=e.clientY;
+  view.x = mx-(mx-view.x)*f; view.y = my-(my-view.y)*f; view.k *= f; apply();
+}, { passive:false });
+stage.addEventListener('dblclick', fit);
+document.getElementById('reset').addEventListener('click', fit);
+addEventListener('resize', fit);
+fit();
+</script>
+</body>
+</html>
